@@ -1,0 +1,31 @@
+4-6. BeanFactory와 ApplicationContext
+p.12
+ApplicationContext: BeanFactory 인터페이스를 상속받음(beanfactory+부가기능)
+p.13
+환경변수:
+개발은 test server에 올려서 여러 시스템 올려서 테스트 할 수 있는 서버, 운영은 실제 production에 나가는 환경
+여기에 더해 stage 환경이라고 운영과 가장 비슷한 밀접한 환경을 만들기도 함
+각 환경별로 어떤 데이터베이스에 연결해야할지가 달라짐=>environmentcapable은 환경변수와 관련된 정보를 처리해주는 기능 제공
+편리한 리소스 조회
+: 파일, 클래스패스, 외부 url 등에서 파일 등을 읽어들여서 내부에서 쓸 때 이걸 추상화해서 편리하게 쓸 수 있는 기능을 제공해줌
+ 이 네가지 모두 일반적인 application을 만들 때 필요한 공통기능들
+
+4-7. 다양한 설정 형식 지원-자바 코드, XML
+p.14
+스프링 컨테이너: 다양한 형식의 설정 정보를 받아들일 수 있음=>임의의 무언가를 만들수도 있음
+우리는 지금까지 annotationconfig를 설정정보로 사용하는 applicationcontext를 사용했었음: appconfig.class 사용했음
+genericXmlApplicationContext: 자바 코드가 아니라 Xml이라는 문서를 설정 정보로 사용하는 것
+: 요즘에는 사용하지 않지만 과거에는 XML 기반의 설정을 많이 사용했었음
+:XML은 컴파일 없이 XML 문서를 바꿔치기하면 빈 설정 정보를 완전 바꿔치기할 수 있다는 장점
+test code를 돌리면 ~가 singletion으로 등록이 되었다고 나옴
+
+4-8. 스프링 빈 설정 메타 정보 - BeanDefinition
+p.16
+BeanDefinition: 정보에 관한 것 자체를 추상화시켜버린 것
+스프링 컨테이너 자체는 BeanDefinition에만 의존함: 추상화에만 의존하는 설계를 한 것(BeanDefinition 자체가 인터페이스)
+p.19
+설정정보를 읽어오는 것이 아니라 내가 직접 프로그래밍해서 beandefiniton을 스프링 컨테이너에 등록할 수도 있음
+
+스프링에 빈을 등록하는 방법은 크게 직접 스프링 빈을 스프링 컨테이너에 등록하는 방법과(xml) factorymethod 사용(외부에서 method를 호출해서 생성하는 방식_ 해서(ex:appconfig.class) 우회해서 등록하는 방법이 있음
+=>beandefinitontest를 돌려봤을 때 annotation~(우리가 일반적으로 쓰는 것)은 class가 null이 나옴, 대신 factorybeanname이 appconfig이고 factorymethodname이 orderservice등으로 나옴
+:factorybean에서 factorymethod를 통해서 호출(생성)한다고 보면 됨

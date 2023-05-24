@@ -1,0 +1,88 @@
+//자바에서의 static import 알아보기
+
+5-1. 웹 어플리케이션과 싱글톤
+싱글톤: 객체 인스턴스가 내 자바 안에 딱 하나만 있어야하는 패턴을 의미
+p.1
+고객이 세번 요청하면 객체가 3개 생성됨(여기서는 memberserviceimpl)
+문제점: 웹 어플리케이션에서는 요청이 계속 오는데 요청이 올 때마다 객체를 새로 만들어야함
+
+5-2. 싱글톤 패턴
+한 자바 서버 안에서는 객체 인스턴스가 1개만 생성되는 것을 보장하는 디자인 패턴임
+'''
+private static final SingletonService instance = new SingletonService();
+'''
+자기자신을 내부에 private으로 하나 가지고 있는데 'static'으로 가지고 있음=>이렇게 선언하면 class level에 올라가기 때문에 딱 하나만 존재하게 됨
+'''
+ private SingletonService() {
+}
+'''
+private 생성자=>생성을 막아버림 : 외부에서 new로 새로 생성하려고 하면 private access이기 때문에 안된다고 compile 오류 남
+
+isSameAs vs isEqualTo
+전자는 주소 비교(==), 후자는 내용 비교(java의 equals())
+
+**appconfig를 앞 code처럼 다 변경해야 하는가? no: spring container가 있으면 spring container가 기본적으로 객체를 다 singleton으로 만들어서 관리해줌
+singleton: 동시에 요청이 와도 있는 객체를 그대로 재활용하므로 성능이 상당히 좋아짐
+
+**singleton 패턴 문제점
+getInstance한 걸 불러와야 하기 때문에 의존관계상 클라이언트가 구체 클래스에 의존해야 함(appconfig에서도 클라이언트가 구체 클래스(ex:memberserviceimpl).getInstance로 꺼내야 함) => DIP 위반
+
+spring framework: 이 싱글톤 패턴의 문제점들을 전부 다 해결하고 싱글톤이 가진 단점은 다 제거하면서 객체를 싱글톤으로 관리해줌
+
+5-3. 싱글톤 컨테이너(싱글톤 컨테이너==스프링 컨테이너)
+스프링 컨테이너는 컨테이너를 만들어주고 appconfig.class에서 다 호출해서 빈 객체를 인스턴스를 미리 생성해서 관리해줌: 조회하면 관리되던 것을 조회해줌
+:스프링의 장점: 싱글톤 방식으로 동작한다
+
+**ctrl+shift+t: 새로운 test 생성 가능
+
+5-4. 싱글톤 방식의 주의점(!!!매우 중요!!!)
+실제로는 더 복잡함: order 함수 setting해놓고 그 안에서 getprice 부르거나 할 때 문제가 생김
+이 예시에서는 특정 클라이언트가 값을 변경할 수 있는 필드가 있어서 문제가 생겼음
+'''
+this.price = price;
+'''
+이 부분이 문제임
+
+5-5. @Configuration과 싱글톤
+@Configuaration: 사실 싱글톤을 위해 존재하는 것
+AppConfig 코드를 보면 아래와 같이 됨
+
+@Bean memberService -> new MemoryMemberRepository()
+@Bean orderService -> new MemoryMemberRepository()
+
+싱글톤이 깨지는가? -> test code 돌려봄
+: MemberServiceImpl에 있는memeberRepository의 실제 값을 확인해 보면 됨 => MemberServiceImpl 코드 수정(test code 추가)
+
+**ctrl+n: 파일로 이동 가능
+
+: 두개가 똑같은 것을 알 수 있음(@Bean의 MemberRepository까지 세번의 new가 호출됐는데 세개가 모두 똑같은 인스턴스임)
+
+5-6. @Configuration과 바이트코드 조작의 마법
+아까 call AppConfig.memberRepository가 한번만 호출되었던 것은 @configuration 덕분임
+'''
+ApplicationContext ac = new AnnotationConfigApplicationContext(AppConfig.class);
+''
+이렇게 쓰면 AppConfig도 스프링 빈으로 등록이 됨
+하지만 사실은 등록된 인스턴스 객체는 내가 만든 객체가 아니라AppConfig@CGLIB라는 조작된 객체이고 이게 싱글톤을 보장해줌(@bean이 붙은 메서드마다 override된 함수들이 실행됨)
+
+**참고: 부모 타입으로 조회하면 자식 타입도 다 끌려나옴
+
+**@configuaration 주석처리 했을때
+MemberServiceImpl 파일에서 MemberRepository는 스프링 빈이 아니라 직접 ..=new Memmorymemberrepository 한 것과 똑같음: 스프링 container가 관리하지 않는 것(orderserviceimpl에 있는 것도 마찬가지)
+Appconfig 파일에서 
+'''
+ public MemberService memberService() {
+        System.out.println("call AppConfig.memberService");
+        return new MemberServiceImpl(new memberRepository());
+    }
+'''
+랑 똑같음
+: 즉 spring container가 관리하는 spring 빈이 아니라 내가 직접 new 해준 거랑 똑같다는 뜻
+
+**참고
+@Autowired MemberRepository memberRepository;
+memberservice와 orderservice 함수에서
+... return new MemberServiceImpl(memberRepository);
+하는 방법도 있음
+:이건 memberRepository 함수를 bean으로 등록하고 bean으로 등록된 것을 memberRepository에 자동으로 의존관계 주입해주고 그걸 끌어다 쓰는 것
+: 그러면 test 성공함
